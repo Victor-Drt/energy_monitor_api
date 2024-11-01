@@ -1,0 +1,60 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+*.js
+
+.env
+
+# TypeScript
+*.tsbuildinfo
+
+# Sequelize
+.sequelizerc
+config/config.json
+config/config.ts
+migrations/
+seeders/
+
+# Test files
+test/
+coverage/
+
+# Logs
+logs/
+
+# Build output
+dist/
+build/
+
+# IDE and editor files
+.vscode/
+.idea/
+.DS_Store
+
+# Editor config files
+.editorconfig
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+*.swp
+*.swo
+*.sync
+
+# System files
+.git/
+.svn/
+.hg/
+.cvs/
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+
+# Database files
+*.db
+*.sqlite
+*.sql
