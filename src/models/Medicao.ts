@@ -1,6 +1,4 @@
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany } from 'sequelize-typescript';
-import { Dispositivo } from './Dispositivo';
-import { QualidadeEnergia } from './QualidadeEnergia';
 
 @Table({ tableName: 'medicoes', timestamps: false })
 export class Medicao extends Model {

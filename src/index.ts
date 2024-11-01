@@ -5,6 +5,7 @@ import ambienteRoutes from './routes/ambienteRoutes';
 import dispositivoRoutes from './routes/dispositivoRoutes';
 import apiRoutes from './routes/api';
 import MqttService from './services/mqttService';
+import medicaoRoutes from './routes/medicaoRoutes';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ sequelize.sync()
 
 // Rotas
 app.use('/ambientes', ambienteRoutes);
+app.use('/medicoes', medicaoRoutes);
 app.use('/dispositivos', dispositivoRoutes);
 app.use('/auth', apiRoutes);
 

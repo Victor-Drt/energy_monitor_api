@@ -3,10 +3,13 @@ import { Dispositivo } from '../models/Dispositivo';
 
 export const criarDispositivo = async (req: Request, res: Response) => {
   try {
+    const dataAtivacao = new Date(); 
     const { nome, ambienteId, macAddress, descricao } = req.body;
-    const dispositivo = await Dispositivo.create({ nome, ambienteId, macAddress, descricao, status: 'ativo' });
+    const dispositivo = await Dispositivo.create({ nome, ambienteId, macAddress, descricao, status: true, dataAtivacao });
     res.status(201).json(dispositivo);
   } catch (error) {
+    console.log(error);
+    
     res.status(500).json({ error: 'Erro ao criar dispositivo' });
   }
 };

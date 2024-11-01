@@ -1,12 +1,15 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs'; // Alterado de bcrypt para bcryptjs
 import { Request, Response } from 'express';
 import { Usuario } from '../models/Usuario';
 
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, senha } = req.body;
-    const user = await Usuario.create({ email, senha });
+
+    // Hash da senha antes de salvar o usuário
+    const hashedPassword = await bcrypt.hash(senha, 10); // Aqui usamos o bcryptjs para fazer o hash
+    const user = await Usuario.create({ email, senha: hashedPassword }); // Salvar a senha hash no banco de dados
     res.status(201).json(user);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao registrar usuário.' });
@@ -17,6 +20,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, senha } = req.body;
     const user = await Usuario.findOne({ where: { email } });
+
     if (user && await bcrypt.compare(senha, user.senha)) {
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
       res.json({ token });

@@ -27,7 +27,8 @@ class MqttService {
                 dispositivoId: data.dispositivoId,
                 corrente: data.corrente,
                 tensao: data.tensao,
-                potenciaAtiva: data.corrente * data.tensao,  // Cálculo de potência
+                potenciaAtiva: data.potenciaAtiva,  // Cálculo de potência
+                consumoAcumulado: data.corrente * data.tensao / 1000,  // Cálculo de potência
                 // timestamp: data.timestamp,
             });
 
