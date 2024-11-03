@@ -8,5 +8,6 @@ const router = express.Router();
 router.get('/estatisticas', authenticateJWT, medicaoController.obterEstatisticas);
 router.get('/:macAddress', authenticateJWT, medicaoController.listarMedicoes);
 router.get('/ambiente/:ambienteId', authenticateJWT, medicaoController.listarMedicoesPorAmbiente);
+// router.get('/dispositivo/:dispositivoId', authenticateJWT, medicaoController.listarMedicoesPorDispositivo);
 
 export default router;

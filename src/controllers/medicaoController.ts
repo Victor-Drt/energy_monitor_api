@@ -29,7 +29,7 @@ class MedicaoController {
     }
   }
 
-  public async listarMedicoesPorAmbiente(req: Request, res: Response) {
+  public async listarMedicoesPorAmbiente(req: Request, res: Response) {    
     try {
       const { startDate, endDate } = req.query;
       const { ambienteId } = req.params;
