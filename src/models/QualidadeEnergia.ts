@@ -8,7 +8,7 @@ export class QualidadeEnergia extends Model {
 
   @ForeignKey(() => Medicao)
   @Column({ type: DataType.UUID, allowNull: false })
-  medicaoId!: string;
+  usuarioId!: string;
 
   @Column({ type: DataType.FLOAT, allowNull: false })
   fatorPotencia!: number;
@@ -27,4 +27,8 @@ export class QualidadeEnergia extends Model {
 
   @Column({ type: DataType.FLOAT, allowNull: true })
   oscilacaoTensao!: number;
+
+  @Column({ type: DataType.DATE, allowNull: false, defaultValue: DataType.NOW })
+  timestamp!: Date;
+
 }

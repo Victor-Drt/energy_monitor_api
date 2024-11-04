@@ -20,6 +20,9 @@ export class Medicao extends Model {
   @Column({ type: DataType.FLOAT, allowNull: false })
   potenciaAtiva!: number;
 
+  @Column({ type: DataType.FLOAT, allowNull: false })
+  potenciaReativa!: number;
+
   @Column({ type: DataType.FLOAT, allowNull: true })
   consumoAcumulado!: number;
 
