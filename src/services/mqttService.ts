@@ -25,26 +25,26 @@ class MqttService {
             // Processamento da medição
             const medicao = await Medicao.create({
                 dispositivoId: data.dispositivoId,
+                timestamp: data.timestamp,
                 corrente: data.corrente,
                 tensao: data.tensao,
                 potenciaAtiva: data.potenciaAtiva,  // Cálculo de potência
-                consumoAcumulado: data.corrente * data.tensao / 1000,  // Cálculo de potência
-                // timestamp: data.timestamp,
+                consumoAcumulado: 0,  // Cálculo de potência
             });
 
-            // Cálculo dos parâmetros de qualidade
-            const qualidadeEnergia = this.calcularQualidade(data);
+            // // Cálculo dos parâmetros de qualidade
+            // const qualidadeEnergia = this.calcularQualidade(data);
 
-            // Armazena os dados de qualidade no banco de dados
-            await QualidadeEnergia.create({
-                medicaoId: medicao.id,
-                fatorPotencia: qualidadeEnergia.fatorPotencia,
-                flutuacaoTensaoMinima: 0, // Inicializa como 0
-                flutuacaoTensaoMaxima: 0, // Inicializa como 0
-                thdTensao: 0, // Inicializa como 0
-                thdCorrente: 0, // Inicializa como 0
-                oscilacaoTensao: 0, // Inicializa como 0
-            });
+            // // Armazena os dados de qualidade no banco de dados
+            // await QualidadeEnergia.create({
+            //     medicaoId: medicao.id,
+            //     fatorPotencia: qualidadeEnergia.fatorPotencia,
+            //     flutuacaoTensaoMinima: 0, // Inicializa como 0
+            //     flutuacaoTensaoMaxima: 0, // Inicializa como 0
+            //     thdTensao: 0, // Inicializa como 0
+            //     thdCorrente: 0, // Inicializa como 0
+            //     oscilacaoTensao: 0, // Inicializa como 0
+            // });
         });
 
         this.client.on('error', (err) => {
