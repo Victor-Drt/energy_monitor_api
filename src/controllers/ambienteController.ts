@@ -6,13 +6,13 @@ import { Medicao } from '../models/Medicao';
 
 export const criarAmbiente = async (req: Request, res: Response) => {
   try {
-    const { nome} = req.body;
+    const { nome } = req.body;
     const usuarioId = req.user.userId
     const ambiente = await Ambiente.create({ nome, usuarioId });
     res.status(201).json(ambiente);
   } catch (error) {
     console.log(error);
-    
+
     res.status(500).json({ error: 'Erro ao criar ambiente' });
   }
 };
@@ -35,8 +35,10 @@ export const listarAmbientes = async (req: Request, res: Response) => {
 
         // Calcula a média de consumo do mês (ajuste o campo de acordo com seu modelo)
         const inicioDoMes = new Date();
-        inicioDoMes.setDate(1); // Primeiro dia do mês
-        const consumoMes = await Medicao.sum('consumoAcumulado', {
+        inicioDoMes.setDate(1);
+        inicioDoMes.setHours(0,0,0,0)
+
+        const medicoes = await Medicao.findAll({
           where: {
             dispositivoId: {
               [Op.in]: dispositivos.map(dispositivo => dispositivo.macAddress), // Use macAddress como ID
@@ -46,6 +48,19 @@ export const listarAmbientes = async (req: Request, res: Response) => {
             },
           },
         });
+
+        var consumoAcumuladokWh = 0;
+        var delta_t = 5 / 3600;
+
+        for(let i = 0; i < medicoes.length; i++) {
+          
+          let potenciaAtiva = medicoes[i].potenciaAtiva;
+          let potenciaAtivakW = potenciaAtiva / 1000;
+          
+          let consumoIntervalo = potenciaAtivakW * delta_t;
+
+          consumoAcumuladokWh += consumoIntervalo;
+        }
 
         // Obtém o total de medições do mês para calcular a média
         const totalMedicoes = await Medicao.count({
@@ -59,12 +74,14 @@ export const listarAmbientes = async (req: Request, res: Response) => {
           },
         });
 
-        const mediaConsumo = totalMedicoes > 0 ? consumoMes / totalMedicoes : 0;
+        // const mediaConsumo = totalMedicoes > 0 ? consumoMes / totalMedicoes : 0;
+        // const mediaConsumo = consumoAcumuladokWh;
 
         return {
           ...ambiente.toJSON(), // Retorna os dados do ambiente
+          consumoAcumuladokWh,
           qtdDispositivos,
-          mediaConsumo,
+          // mediaConsumo,
         };
       })
     );
@@ -83,10 +100,10 @@ export const listarAmbientes = async (req: Request, res: Response) => {
 //     res.json(ambientes);
 //   } catch (error) {
 //     console.log(error);
-    
+
 //     res.status(500).json({ error: 'Erro ao listar ambientes' });
 //   }
-  
+
 // };
 
 export const atualizarAmbiente = async (req: Request, res: Response) => {
@@ -95,19 +112,19 @@ export const atualizarAmbiente = async (req: Request, res: Response) => {
     const { nome } = req.body;
 
     const ambiente = await Ambiente.findByPk(id);
-    
+
     if (!ambiente) {
       res.status(404).json({ error: 'Ambiente não encontrado' });
     } else {
       ambiente.nome = nome || ambiente.nome;
-      await ambiente.save();  
+      await ambiente.save();
     }
 
 
-     res.json({ message: 'Ambiente atualizado com sucesso', ambiente });
+    res.json({ message: 'Ambiente atualizado com sucesso', ambiente });
   } catch (error) {
     console.error(error);
-     res.status(500).json({ error: 'Erro ao atualizar ambiente' });
+    res.status(500).json({ error: 'Erro ao atualizar ambiente' });
   }
 };
 
@@ -117,7 +134,7 @@ export const deletarAmbiente = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const ambiente = await Ambiente.findByPk(id);
-    
+
     if (!ambiente) {
       res.status(404).json({ error: 'Ambiente não encontrado' });
     } else {

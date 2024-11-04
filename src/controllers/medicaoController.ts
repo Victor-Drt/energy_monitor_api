@@ -11,11 +11,7 @@ class MedicaoController {
     try {
       const { startDate, endDate } = req.query;
 
-      const formattedStartDate = new Date(startDate as string);
-      formattedStartDate.setHours(0, 0, 0, 0);
-
-      const formattedendDate = new Date(endDate as string);
-      formattedendDate.setHours(23, 59, 59, 999);
+      const [formattedStartDate, formattedendDate] = formatDates(startDate as string, endDate as string);
 
       const { macAddress } = req.params;
       const userId = req.user.userId; // userId extraído do token pelo middleware de autenticação
@@ -42,6 +38,8 @@ class MedicaoController {
       const { ambienteId } = req.params;
       const userId = req.user.userId; // userId extraído do token pelo middleware de autenticação
 
+      const [formattedStartDate, formattedendDate] = formatDates(startDate as string, endDate as string);
+
       const dispositivos = await Dispositivo.findAll({
         where: { ambienteId: ambienteId },
         attributes: ['macAddress'],
@@ -55,7 +53,7 @@ class MedicaoController {
         where: {
           dispositivoId: { [Op.in]: dispositivoIds }, // Agora utiliza macAddress do parâmetro
           timestamp: {
-            [Op.between]: [new Date(startDate as string), new Date(endDate as string)],
+            [Op.between]: [new Date(formattedStartDate), new Date(formattedendDate)],
           },
         },
         order: [['timestamp', 'DESC']],
@@ -67,14 +65,17 @@ class MedicaoController {
     }
   }
 
-
   // Obter consumo total diário, semanal, e mensal, quantidade de ambientes e tensão média  
   public async obterEstatisticas(req: Request, res: Response) {
     try {
+      const { startDate, endDate } = req.query;
+
+      const [formattedStartDate, formattedendDate] = formatDates(startDate as string, endDate as string);
+
       const userId = req.user.userId; // userId extraído do token pelo middleware de autenticação
 
-      const hoje = new Date();
-      const inicioDoDia = new Date(hoje.setHours(0, 0, 0, 0));
+      const hoje = formattedStartDate;
+      const inicioDoDia = formattedStartDate;
       const inicioDaSemana = new Date(hoje.setDate(hoje.getDate() - hoje.getDay()));
       const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
 
@@ -143,5 +144,19 @@ class MedicaoController {
     }
   }
 }
+
+function formatDates(startDateString: string, endDateString: string) {
+  // Cria o objeto Date para a data de início (meia-noite)
+  const formattedStartDate = new Date(startDateString);
+  formattedStartDate.setHours(0, 0, 0, 0); // Define para 00:00:00.000
+
+  // Cria o objeto Date para a data de fim (23:59:59.999 do dia anterior à meia-noite)
+  const formattedEndDate = new Date(endDateString);
+  formattedEndDate.setHours(23, 59, 59, 999); // Define para 23:59:59.999
+
+  // Retorna um array com as datas formatadas
+  return [formattedStartDate, formattedEndDate];
+}
+
 
 export default new MedicaoController();
