@@ -62,31 +62,30 @@ class MedicaoController {
         });
 
         // Estruturar o resultado agrupando por dispositivo
-        const resultado: any = { dispositivos: {} }; // Comece com um objeto que contém 'dispositivos'
+        const dispositivosResultado: any[] = [];
 
         // Agrupar as medições por dispositivo
-        medicoes.forEach(medicao => {
-            const dispositivoNome = dispositivos.find(d => d.macAddress === medicao.dispositivoId)?.descricao || `Dispositivo ${medicao.dispositivoId}`;
-            const hora = medicao.timestamp.toISOString().substr(11, 8); // Obtém a hora no formato HH:mm:ss
+        dispositivos.forEach(dispositivo => {
+            const dispositivoNome = dispositivo.descricao || `Dispositivo ${dispositivo.macAddress}`;
+            const medicoesDoDispositivo = medicoes
+                .filter(medicao => medicao.dispositivoId === dispositivo.macAddress)
+                .map(medicao => ({
+                    potenciaAtivaKw: medicao.potenciaAtiva / 1000, // Supondo que a propriedade no modelo seja `potenciaAtiva`
+                    hora: medicao.timestamp.toISOString().substr(11, 8), // Obtém a hora no formato HH:mm:ss
+                }));
 
-            if (!resultado.dispositivos[dispositivoNome]) {
-                resultado.dispositivos[dispositivoNome] = []; // Inicializa o array para o dispositivo
-            }
-
-            resultado.dispositivos[dispositivoNome].push({
-                potenciaAtivaKw: medicao.potenciaAtiva / 1000, // Supondo que a propriedade no modelo seja `potenciaAtiva`
-                hora: hora,
+            dispositivosResultado.push({
+                nome: dispositivoNome,
+                medicoes: medicoesDoDispositivo,
             });
         });
 
-        res.json(resultado);
+        res.json({ dispositivos: dispositivosResultado });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao listar as medições. ' + error });
     }
 }
 
-
-  // Obter consumo total diário, semanal, e mensal, quantidade de ambientes e tensão média  
   public async obterEstatisticas(req: Request, res: Response) {
     try {
       const { startDate, endDate } = req.query;
@@ -164,6 +163,7 @@ class MedicaoController {
       res.status(500).json({ error: 'Erro ao obter estatísticas.' });
     }
   }
+
 }
 
 function formatDates(startDateString: string, endDateString: string) {
