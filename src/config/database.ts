@@ -16,6 +16,7 @@ export const sequelize = new Sequelize({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   models: [Usuario, Ambiente, Dispositivo, Medicao, QualidadeEnergia],
+  timezone: '-04:00',
   logging: false, // Desabilita logs de SQL
 });
 
