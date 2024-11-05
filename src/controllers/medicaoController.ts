@@ -62,19 +62,19 @@ class MedicaoController {
         });
 
         // Estruturar o resultado agrupando por dispositivo
-        const resultado: any = {};
+        const resultado: any = { dispositivos: {} }; // Comece com um objeto que contém 'dispositivos'
 
         // Agrupar as medições por dispositivo
         medicoes.forEach(medicao => {
             const dispositivoNome = dispositivos.find(d => d.macAddress === medicao.dispositivoId)?.descricao || `Dispositivo ${medicao.dispositivoId}`;
             const hora = medicao.timestamp.toISOString().substr(11, 8); // Obtém a hora no formato HH:mm:ss
 
-            if (!resultado[dispositivoNome]) {
-                resultado[dispositivoNome] = [];
+            if (!resultado.dispositivos[dispositivoNome]) {
+                resultado.dispositivos[dispositivoNome] = []; // Inicializa o array para o dispositivo
             }
 
-            resultado[dispositivoNome].push({
-                potenciaAtivaKw: medicao.potenciaAtiva, // Supondo que a propriedade no modelo seja `potenciaAtiva`
+            resultado.dispositivos[dispositivoNome].push({
+                potenciaAtivaKw: medicao.potenciaAtiva / 1000, // Supondo que a propriedade no modelo seja `potenciaAtiva`
                 hora: hora,
             });
         });
@@ -84,6 +84,7 @@ class MedicaoController {
         res.status(500).json({ error: 'Erro ao listar as medições. ' + error });
     }
 }
+
 
   // Obter consumo total diário, semanal, e mensal, quantidade de ambientes e tensão média  
   public async obterEstatisticas(req: Request, res: Response) {
