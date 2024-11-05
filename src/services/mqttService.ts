@@ -6,7 +6,10 @@ class MqttService {
     private client: mqtt.MqttClient;
 
     constructor(brokerUrl: string) {
-        this.client = mqtt.connect(brokerUrl);
+        this.client = mqtt.connect(brokerUrl, {
+            connectTimeout: 30000,
+            reconnectPeriod: 5000, // Tentar reconectar a cada 5 segundos
+        });
 
         this.client.on('connect', () => {
             console.log('Conectado ao broker MQTT', brokerUrl);
@@ -20,27 +23,36 @@ class MqttService {
         });
 
         this.client.on('message', async (topic, message) => {
-            const data = JSON.parse(message.toString());
+            try {
+                const data = JSON.parse(message.toString());
 
-            const s = data.tensao * data.corrente;
-            const p = data.potenciaAtiva;
-            const potenciaReativa = Math.sqrt((s * s) - (p * p));
+                const s = data.tensao * data.corrente;
+                const p = data.potenciaAtiva;
+                const potenciaReativa = Math.sqrt((s * s) - (p * p));
 
-            // Processamento da medição
-            const medicao = await Medicao.create({
-                dispositivoId: data.dispositivoId,
-                timestamp: data.timestamp,
-                corrente: data.corrente,
-                tensao: data.tensao,
-                potenciaAtiva: data.potenciaAtiva,  // Cálculo de potência
-                potenciaReativa,
-                consumoAcumulado: 0,
-            });
+                // Processamento da medição
+                const medicao = await Medicao.create({
+                    dispositivoId: data.dispositivoId,
+                    timestamp: data.timestamp,
+                    corrente: data.corrente,
+                    tensao: data.tensao,
+                    potenciaAtiva: data.potenciaAtiva,
+                    potenciaReativa,
+                    consumoAcumulado: 0,
+                });
 
+                console.log('Medição armazenada com sucesso:', medicao);
+            } catch (error) {
+                console.error('Erro ao processar a mensagem:', error);
+            }
         });
 
         this.client.on('error', (err) => {
             console.error('Erro de conexão:', err);
+        });
+
+        this.client.on('close', () => {
+            console.warn('Conexão com o broker MQTT foi fechada.');
         });
     }
 }

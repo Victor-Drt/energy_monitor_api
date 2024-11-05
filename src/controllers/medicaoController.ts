@@ -34,36 +34,56 @@ class MedicaoController {
 
   public async listarMedicoesPorAmbiente(req: Request, res: Response) {
     try {
-      const { startDate, endDate } = req.query;
-      const { ambienteId } = req.params;
-      const userId = req.user.userId; // userId extraído do token pelo middleware de autenticação
+        const { startDate, endDate } = req.query;
+        const { ambienteId } = req.params;
+        const usuarioId = req.user.userId;
 
-      const [formattedStartDate, formattedendDate] = formatDates(startDate as string, endDate as string);
+        // Formatar as datas de início e fim
+        const [formattedStartDate, formattedEndDate] = formatDates(startDate as string, endDate as string);
 
-      const dispositivos = await Dispositivo.findAll({
-        where: { ambienteId: ambienteId },
-        attributes: ['macAddress'],
-      });
+        // Buscar os dispositivos associados ao ambiente
+        const dispositivos = await Dispositivo.findAll({
+            where: { ambienteId: ambienteId },
+            attributes: ['macAddress', 'descricao'], // Incluindo o nome do dispositivo
+        });
 
-      // Extrai IDs de dispositivos
-      const dispositivoIds = dispositivos.map(dispositivo => dispositivo.macAddress);
+        // Extrair IDs de dispositivos
+        const dispositivoIds = dispositivos.map(dispositivo => dispositivo.macAddress);
 
+        // Buscar as medições
+        const medicoes = await Medicao.findAll({
+            where: {
+                dispositivoId: { [Op.in]: dispositivoIds },
+                timestamp: {
+                    [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)],
+                },
+            },
+            order: [['timestamp', 'DESC']],
+        });
 
-      const medicoes = await Medicao.findAll({
-        where: {
-          dispositivoId: { [Op.in]: dispositivoIds }, // Agora utiliza macAddress do parâmetro
-          timestamp: {
-            [Op.between]: [new Date(formattedStartDate), new Date(formattedendDate)],
-          },
-        },
-        order: [['timestamp', 'DESC']],
-      });
+        // Estruturar o resultado agrupando por dispositivo
+        const resultado: any = {};
 
-      res.json(medicoes);
+        // Agrupar as medições por dispositivo
+        medicoes.forEach(medicao => {
+            const dispositivoNome = dispositivos.find(d => d.macAddress === medicao.dispositivoId)?.descricao || `Dispositivo ${medicao.dispositivoId}`;
+            const hora = medicao.timestamp.toISOString().substr(11, 8); // Obtém a hora no formato HH:mm:ss
+
+            if (!resultado[dispositivoNome]) {
+                resultado[dispositivoNome] = [];
+            }
+
+            resultado[dispositivoNome].push({
+                potenciaAtivaKw: medicao.potenciaAtiva, // Supondo que a propriedade no modelo seja `potenciaAtiva`
+                hora: hora,
+            });
+        });
+
+        res.json(resultado);
     } catch (error) {
-      res.status(500).json({ error: 'Erro ao listar as medições.' });
+        res.status(500).json({ error: 'Erro ao listar as medições. ' + error });
     }
-  }
+}
 
   // Obter consumo total diário, semanal, e mensal, quantidade de ambientes e tensão média  
   public async obterEstatisticas(req: Request, res: Response) {
