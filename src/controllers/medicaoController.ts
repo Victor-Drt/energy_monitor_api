@@ -71,7 +71,7 @@ class MedicaoController {
                 .filter(medicao => medicao.dispositivoId === dispositivo.macAddress)
                 .map(medicao => ({
                     potenciaAtivaKw: medicao.potenciaAtiva / 1000, // Supondo que a propriedade no modelo seja `potenciaAtiva`
-                    hora: medicao.timestamp.toISOString().substr(11, 8), // Obtém a hora no formato HH:mm:ss
+                    hora: medicao.timestamp, // Obtém a hora no formato HH:mm:ss
                 }));
 
             dispositivosResultado.push({
