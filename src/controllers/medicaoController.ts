@@ -76,11 +76,11 @@ class MedicaoController {
 
             dispositivosResultado.push({
                 nome: dispositivoNome,
-                medicoes: medicoesDoDispositivo,
+                registrosConsumo: medicoesDoDispositivo,
             });
         });
 
-        res.json({ dispositivos: dispositivosResultado });
+        res.json({ devices: dispositivosResultado });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao listar as medições. ' + error });
     }
