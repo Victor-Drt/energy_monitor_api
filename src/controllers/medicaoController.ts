@@ -97,7 +97,12 @@ class MedicaoController {
       const hoje = formattedStartDate;
       const inicioDoDia = formattedStartDate;
       const inicioDaSemana = new Date(hoje.setDate(hoje.getDate() - hoje.getDay()));
+      const ultimoDiaDaSemana = new Date(hoje); 
+      ultimoDiaDaSemana.setDate(hoje.getDate() + (7 - hoje.getDay()));
+      
       const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      const ultimoDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+
 
       // Encontra todos os ambientes do usuário
       const ambientes = await Ambiente.findAll({
@@ -118,42 +123,38 @@ class MedicaoController {
       const dispositivoIds = dispositivos.map(dispositivo => dispositivo.macAddress);
 
       // Calcula o consumo diário
-      const consumoDiario = await Medicao.sum('consumoAcumulado', {
+      const consumoDiario = await Medicao.sum('potenciaAtiva', {
         where: {
-          timestamp: { [Op.gte]: inicioDoDia },
+          timestamp: { [Op.between]: [formattedStartDate, formattedendDate] },
           dispositivoId: { [Op.in]: dispositivoIds },
         },
       });
 
-      // Calcula o consumo semanal
-      const consumoSemanal = await Medicao.sum('consumoAcumulado', {
+      const consumoSemanal = await Medicao.sum('potenciaAtiva', {
         where: {
           timestamp: { [Op.gte]: inicioDaSemana },
           dispositivoId: { [Op.in]: dispositivoIds },
         },
-      });
+      }) || 0.00;
 
-      // Calcula o consumo mensal
-      const consumoMensal = await Medicao.sum('consumoAcumulado', {
+      const consumoMensal = await Medicao.sum('potenciaAtiva', {
         where: {
-          timestamp: { [Op.gte]: inicioDoMes },
+          timestamp: { [Op.between]: [inicioDoMes, ultimoDiaDoMes] },          
           dispositivoId: { [Op.in]: dispositivoIds },
         },
-      });
+      }) || 0.00;
 
-      // Conta a quantidade de ambientes
       const quantidadeAmbientes = ambientes.length;
 
-      // Calcula a tensão média
       const tensaoMedia = await Medicao.findOne({
-        where: { dispositivoId: { [Op.in]: dispositivoIds } },
+        where: { dispositivoId: { [Op.in]: dispositivoIds }, timestamp: { [Op.between]: [inicioDoMes, ultimoDiaDoMes] } },
         attributes: [[fn('AVG', col('tensao')), 'tensaoMedia']],
       });
 
       res.json({
-        consumoDiario,
-        consumoSemanal,
-        consumoMensal,
+        consumoDiario: consumoDiario / 1000,
+        consumoSemanal: consumoSemanal / 1000,
+        consumoMensal: consumoMensal / 1000,
         quantidadeAmbientes,
         tensaoMedia: tensaoMedia?.getDataValue('tensaoMedia') || 0,
       });
