@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Serviço da API Node.js
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"  # Expondo a porta 3000 para acesso local
+    depends_on:
+      - db  # Espera o banco de dados iniciar primeiro
+    environment:
+      DATABASE_URL: postgres://user:password@db:5433/em_db  # Configuração do banco
+    networks:
+      - app-network
+
+  # Serviço do PostgreSQL
+  db:
+    image: postgres:16  # Utiliza a imagem do PostgreSQL 16
+    environment:
+      POSTGRES_USER: postgres  # Nome de usuário do banco
+      POSTGRES_PASSWORD: root  # Senha do banco
+      POSTGRES_DB: em_db  # Nome do banco de dados
+    ports:
+      - "5433:5432"  # Expondo a porta do banco
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # Volume para persistir dados
+    networks:
+      - app-network
+
+# Volume para persistência dos dados do banco de dados
+volumes:
+  pgdata:
+
+# Definindo uma rede compartilhada entre a API e o banco
+networks:
+  app-network:
+    driver: bridge

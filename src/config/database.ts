@@ -16,13 +16,14 @@ export const sequelize = new Sequelize({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   models: [Usuario, Ambiente, Dispositivo, Medicao, QualidadeEnergia],
+  port: Number(process.env.DB_PORT),
   // timezone: '-04:00',
   logging: false,
 });
 
 (async () => {
   try {
-    await sequelize.sync();
+    await sequelize.sync({ force: false });
     console.log('Conexão com o banco de dados foi bem-sucedida!');
   } catch (error) {
     console.error('Erro ao conectar ao banco de dados:', error);

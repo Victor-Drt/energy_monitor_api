@@ -12,8 +12,6 @@ export const criarAmbiente = async (req: Request, res: Response) => {
     const ambiente = await Ambiente.create({ nome, usuarioId });
     res.status(201).json(ambiente);
   } catch (error) {
-    console.log(error);
-
     res.status(500).json({ error: 'Erro ao criar ambiente' });
   }
 };
@@ -93,6 +91,7 @@ export const atualizarAmbiente = async (req: Request, res: Response) => {
 
     if (!ambiente) {
       res.status(404).json({ error: 'Ambiente não encontrado' });
+      return;
     } else {
       ambiente.nome = nome || ambiente.nome;
       await ambiente.save();
@@ -115,6 +114,7 @@ export const deletarAmbiente = async (req: Request, res: Response) => {
 
     if (!ambiente) {
       res.status(404).json({ error: 'Ambiente não encontrado' });
+      return;
     } else {
       await ambiente.destroy();
     }
