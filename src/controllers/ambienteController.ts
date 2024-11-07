@@ -3,6 +3,7 @@ import { Ambiente } from '../models/Ambiente';
 import { Op } from 'sequelize';
 import { Dispositivo } from '../models/Dispositivo';
 import { Medicao } from '../models/Medicao';
+import moment from "moment-timezone";
 
 export const criarAmbiente = async (req: Request, res: Response) => {
   try {
@@ -37,9 +38,11 @@ export const listarAmbientes = async (req: Request, res: Response) => {
         });
         const qtdDispositivos = dispositivos.length;
 
-        const inicioDoMes = new Date(formattedStartDate.getFullYear(), formattedStartDate.getMonth(), 1);
-        const ultimoDiaDoMes = new Date(formattedStartDate.getFullYear(), formattedStartDate.getMonth() + 1, 0);
-  
+        const formattedStartDate = moment.tz(startDate, "America/Manaus");
+
+        const inicioDoMes = formattedStartDate.clone().startOf('month');
+        const ultimoDiaDoMes = formattedStartDate.clone().endOf('month');
+          
         const medicoes = await Medicao.findAll({
           where: {
             dispositivoId: {
@@ -52,35 +55,17 @@ export const listarAmbientes = async (req: Request, res: Response) => {
         });
 
         var consumoAcumuladokWh = 0;
-        var delta_t = 5 / 3600;  // Tempo em horas (5 segundos)
-        
+
         for (let i = 0; i < medicoes.length; i++) {
-          // Potência ativa em W
+          // Potência ativa em W (watts)
           let potenciaAtiva = medicoes[i].potenciaAtiva;
         
-          // Converte a potência ativa para kW
+          // Converte a potência ativa de W para kW (dividindo por 1000)
           let potenciaAtivakW = potenciaAtiva / 1000;
         
-          // Calcula o consumo de energia (em kWh) durante o intervalo de 5 segundos
-          let consumoIntervalo = potenciaAtivakW * delta_t;
-        
-          // Acumula o consumo total de energia em kWh
-          consumoAcumuladokWh += consumoIntervalo;
+          // Soma a potência ativa convertida para kW
+          consumoAcumuladokWh += potenciaAtivakW;
         }
-        // Obtém o total de medições do mês para calcular a média
-        // const totalMedicoes = await Medicao.count({
-        //   where: {
-        //     dispositivoId: {
-        //       [Op.in]: dispositivos.map(dispositivo => dispositivo.macAddress),
-        //     },
-        //     timestamp: {
-        //       [Op.gte]: inicioDoMes,
-        //     },
-        //   },
-        // });
-
-        // const mediaConsumo = totalMedicoes > 0 ? consumoMes / totalMedicoes : 0;
-        // const mediaConsumo = consumoAcumuladokWh;
 
         return {
           ...ambiente.toJSON(), // Retorna os dados do ambiente
@@ -97,19 +82,6 @@ export const listarAmbientes = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Erro ao listar ambientes' });
   }
 };
-
-
-// export const listarAmbientes = async (req: Request, res: Response) => {
-//   try {    
-//     const ambientes = await Ambiente.findAll({ where: { usuarioId: req.user.userId } });
-//     res.json(ambientes);
-//   } catch (error) {
-//     console.log(error);
-
-//     res.status(500).json({ error: 'Erro ao listar ambientes' });
-//   }
-
-// };
 
 export const atualizarAmbiente = async (req: Request, res: Response) => {
   try {
@@ -154,14 +126,21 @@ export const deletarAmbiente = async (req: Request, res: Response) => {
 };
 
 function formatDates(startDateString: string, endDateString: string) {
-  // Cria o objeto Date para a data de início (meia-noite)
-  const formattedStartDate = new Date(startDateString);
-  formattedStartDate.setHours(0, 0, 0, 0); // Define para 00:00:00.000
+  const formattedStartDate = moment.tz(startDateString, "America/Manaus").startOf("day").format();
+  const formattedEndDate = moment.tz(endDateString, "America/Manaus").endOf("day").format();
 
-  // Cria o objeto Date para a data de fim (23:59:59.999 do dia anterior à meia-noite)
-  const formattedEndDate = new Date(endDateString);
-  formattedEndDate.setHours(23, 59, 59, 999); // Define para 23:59:59.999
-
-  // Retorna um array com as datas formatadas
   return [formattedStartDate, formattedEndDate];
 }
+
+// function formatDates(startDateString: string, endDateString: string) {
+//   // Cria o objeto Date para a data de início (meia-noite)
+//   const formattedStartDate = new Date(startDateString);
+//   formattedStartDate.setHours(0, 0, 0, 0); // Define para 00:00:00.000
+
+//   // Cria o objeto Date para a data de fim (23:59:59.999 do dia anterior à meia-noite)
+//   const formattedEndDate = new Date(endDateString);
+//   formattedEndDate.setHours(23, 59, 59, 999); // Define para 23:59:59.999
+
+//   // Retorna um array com as datas formatadas
+//   return [formattedStartDate, formattedEndDate];
+// }

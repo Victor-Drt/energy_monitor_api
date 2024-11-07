@@ -137,7 +137,7 @@ class MedicaoController {
 
       const consumoMensal = await Medicao.sum('potenciaAtiva', {
         where: {
-          timestamp: { [Op.between]: [inicioDoMes, ultimoDiaDoMes] },          
+          timestamp: { [Op.between]: [inicioDoMes, ultimoDiaDoMes] },
           dispositivoId: { [Op.in]: dispositivoIds },
         },
       }) || 0.00;
@@ -164,7 +164,7 @@ class MedicaoController {
   }
 }
 
-  function formatDates(startDateString: string, endDateString: string) {
+function formatDates(startDateString: string, endDateString: string) {
   const formattedStartDate = moment.tz(startDateString, "America/Manaus").startOf("day").format();
   const formattedEndDate = moment.tz(endDateString, "America/Manaus").endOf("day").format();
 
