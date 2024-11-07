@@ -3,6 +3,7 @@ import { Medicao } from '../models/Medicao';
 import { Op, fn, col, literal } from 'sequelize';
 import { Ambiente } from '../models/Ambiente';
 import { Dispositivo } from '../models/Dispositivo';
+import moment from "moment-timezone";
 
 class MedicaoController {
 
@@ -34,75 +35,72 @@ class MedicaoController {
 
   public async listarMedicoesPorAmbiente(req: Request, res: Response) {
     try {
-        const { startDate, endDate } = req.query;
-        const { ambienteId } = req.params;
-        const usuarioId = req.user.userId;
+      const { startDate, endDate } = req.query;
+      const { ambienteId } = req.params;
+      const usuarioId = req.user.userId;
 
-        // Formatar as datas de início e fim
-        const [formattedStartDate, formattedEndDate] = formatDates(startDate as string, endDate as string);
+      // Formatar as datas de início e fim
+      const [formattedStartDate, formattedEndDate] = formatDates(startDate as string, endDate as string);
 
-        // Buscar os dispositivos associados ao ambiente
-        const dispositivos = await Dispositivo.findAll({
-            where: { ambienteId: ambienteId },
-            attributes: ['macAddress', 'descricao'], // Incluindo o nome do dispositivo
+      // Buscar os dispositivos associados ao ambiente
+      const dispositivos = await Dispositivo.findAll({
+        where: { ambienteId: ambienteId },
+        attributes: ['macAddress', 'descricao'], // Incluindo o nome do dispositivo
+      });
+
+      // Extrair IDs de dispositivos
+      const dispositivoIds = dispositivos.map(dispositivo => dispositivo.macAddress);
+
+      // Buscar as medições
+      const medicoes = await Medicao.findAll({
+        where: {
+          dispositivoId: { [Op.in]: dispositivoIds },
+          timestamp: {
+            [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)],
+          },
+        },
+        order: [['timestamp', 'DESC']],
+      });
+
+      // Estruturar o resultado agrupando por dispositivo
+      const dispositivosResultado: any[] = [];
+
+      // Agrupar as medições por dispositivo
+      dispositivos.forEach(dispositivo => {
+        const dispositivoNome = dispositivo.descricao || `Dispositivo ${dispositivo.macAddress}`;
+        const medicoesDoDispositivo = medicoes
+          .filter(medicao => medicao.dispositivoId === dispositivo.macAddress)
+          .map(medicao => ({
+            potenciaAtivaKw: medicao.potenciaAtiva / 1000, // Supondo que a propriedade no modelo seja `potenciaAtiva`
+            hora: medicao.timestamp, // Obtém a hora no formato HH:mm:ss
+          }));
+
+        dispositivosResultado.push({
+          nome: dispositivoNome,
+          registrosConsumo: medicoesDoDispositivo,
         });
+      });
 
-        // Extrair IDs de dispositivos
-        const dispositivoIds = dispositivos.map(dispositivo => dispositivo.macAddress);
-
-        // Buscar as medições
-        const medicoes = await Medicao.findAll({
-            where: {
-                dispositivoId: { [Op.in]: dispositivoIds },
-                timestamp: {
-                    [Op.between]: [new Date(formattedStartDate), new Date(formattedEndDate)],
-                },
-            },
-            order: [['timestamp', 'DESC']],
-        });
-
-        // Estruturar o resultado agrupando por dispositivo
-        const dispositivosResultado: any[] = [];
-
-        // Agrupar as medições por dispositivo
-        dispositivos.forEach(dispositivo => {
-            const dispositivoNome = dispositivo.descricao || `Dispositivo ${dispositivo.macAddress}`;
-            const medicoesDoDispositivo = medicoes
-                .filter(medicao => medicao.dispositivoId === dispositivo.macAddress)
-                .map(medicao => ({
-                    potenciaAtivaKw: medicao.potenciaAtiva / 1000, // Supondo que a propriedade no modelo seja `potenciaAtiva`
-                    hora: medicao.timestamp, // Obtém a hora no formato HH:mm:ss
-                }));
-
-            dispositivosResultado.push({
-                nome: dispositivoNome,
-                registrosConsumo: medicoesDoDispositivo,
-            });
-        });
-
-        res.json({ devices: dispositivosResultado });
+      res.json({ devices: dispositivosResultado });
     } catch (error) {
-        res.status(500).json({ error: 'Erro ao listar as medições. ' + error });
+      res.status(500).json({ error: 'Erro ao listar as medições. ' + error });
     }
-}
+  }
 
   public async obterEstatisticas(req: Request, res: Response) {
     try {
       const { startDate, endDate } = req.query;
 
-      const [formattedStartDate, formattedendDate] = formatDates(startDate as string, endDate as string);
+      const [formattedStartDate, formattedEndDate] = formatDates(startDate as string, endDate as string);
 
-      const userId = req.user.userId; // userId extraído do token pelo middleware de autenticação
+      const userId = req.user.userId;
 
-      const hoje = formattedStartDate;
-      const inicioDoDia = formattedStartDate;
-      const inicioDaSemana = new Date(hoje.setDate(hoje.getDate() - hoje.getDay()));
-      const ultimoDiaDaSemana = new Date(hoje); 
-      ultimoDiaDaSemana.setDate(hoje.getDate() + (7 - hoje.getDay()));
-      
-      const inicioDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-      const ultimoDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+      const hoje = moment.tz(startDate as string, "America/Manaus");
 
+      const inicioDaSemana = hoje.clone().startOf("week").toISOString();
+      const ultimoDiaDaSemana = hoje.clone().endOf("week").toISOString();
+      const inicioDoMes = hoje.clone().startOf("month").toISOString();
+      const ultimoDiaDoMes = hoje.clone().endOf("month").toISOString();
 
       // Encontra todos os ambientes do usuário
       const ambientes = await Ambiente.findAll({
@@ -125,14 +123,14 @@ class MedicaoController {
       // Calcula o consumo diário
       const consumoDiario = await Medicao.sum('potenciaAtiva', {
         where: {
-          timestamp: { [Op.between]: [formattedStartDate, formattedendDate] },
+          timestamp: { [Op.between]: [formattedStartDate, formattedEndDate] },
           dispositivoId: { [Op.in]: dispositivoIds },
         },
       });
 
       const consumoSemanal = await Medicao.sum('potenciaAtiva', {
         where: {
-          timestamp: { [Op.gte]: inicioDaSemana },
+          timestamp: { [Op.between]: [inicioDaSemana, ultimoDiaDaSemana] },
           dispositivoId: { [Op.in]: dispositivoIds },
         },
       }) || 0.00;
@@ -164,21 +162,13 @@ class MedicaoController {
       res.status(500).json({ error: 'Erro ao obter estatísticas.' });
     }
   }
-
 }
 
-function formatDates(startDateString: string, endDateString: string) {
-  // Cria o objeto Date para a data de início (meia-noite)
-  const formattedStartDate = new Date(startDateString);
-  formattedStartDate.setHours(0, 0, 0, 0); // Define para 00:00:00.000
+  function formatDates(startDateString: string, endDateString: string) {
+  const formattedStartDate = moment.tz(startDateString, "America/Manaus").startOf("day").format();
+  const formattedEndDate = moment.tz(endDateString, "America/Manaus").endOf("day").format();
 
-  // Cria o objeto Date para a data de fim (23:59:59.999 do dia anterior à meia-noite)
-  const formattedEndDate = new Date(endDateString);
-  formattedEndDate.setHours(23, 59, 59, 999); // Define para 23:59:59.999
-
-  // Retorna um array com as datas formatadas
   return [formattedStartDate, formattedEndDate];
 }
-
 
 export default new MedicaoController();
