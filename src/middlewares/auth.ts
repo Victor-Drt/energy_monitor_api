@@ -17,7 +17,7 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
       return; // Retorna para evitar continuar a execução
     }
     // Atribuindo o usuário ao request
-    req.user = user; // Verifique se a interface Request foi estendida
+    (req as any).user = user; // Verifique se a interface Request foi estendida
     next(); // Chama o próximo middleware
   });
 };

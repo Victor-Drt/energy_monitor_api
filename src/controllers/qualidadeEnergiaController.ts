@@ -10,7 +10,7 @@ class QualidadeEnergiaController {
   public async calcularQualidadeEnergia(req: Request, res: Response) {
     try {
       const { startDate, endDate } = req.query;
-      const usuarioId = req.user.userId;
+      const usuarioId = (req as any).user.userId;
   
       if (!startDate || !endDate) {
          res.status(400).json({ error: 'Datas de início e fim são obrigatórias.' });
@@ -83,7 +83,7 @@ class QualidadeEnergiaController {
   
   public async listarQualidadeEnergia(req: Request, res: Response) {
     try {
-      const usuarioId = req.user.userId
+      const usuarioId = (req as any).user.userId;
       
       const analises = await QualidadeEnergia.findAll({
         where: { usuarioId },

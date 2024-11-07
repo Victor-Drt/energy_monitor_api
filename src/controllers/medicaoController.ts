@@ -15,7 +15,7 @@ class MedicaoController {
       const [formattedStartDate, formattedendDate] = formatDates(startDate as string, endDate as string);
 
       const { macAddress } = req.params;
-      const userId = req.user.userId; // userId extraído do token pelo middleware de autenticação
+      const userId = (req as any).user.userId;
 
       const medicoes = await Medicao.findAll({
         where: {
@@ -37,7 +37,7 @@ class MedicaoController {
     try {
       const { startDate, endDate } = req.query;
       const { ambienteId } = req.params;
-      const usuarioId = req.user.userId;
+      const usuarioId = (req as any).user.userId;
 
       // Formatar as datas de início e fim
       const [formattedStartDate, formattedEndDate] = formatDates(startDate as string, endDate as string);
@@ -93,7 +93,7 @@ class MedicaoController {
 
       const [formattedStartDate, formattedEndDate] = formatDates(startDate as string, endDate as string);
 
-      const userId = req.user.userId;
+      const userId = (req as any).user.userId;
 
       const hoje = moment.tz(startDate as string, "America/Manaus");
 

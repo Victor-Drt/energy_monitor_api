@@ -22,7 +22,7 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
     }
 
     // Se o token for válido, adiciona o usuário ao objeto req
-    req.user = user; // Altere o tipo conforme necessário para o seu caso
+    (req as any).user = user; // Altere o tipo conforme necessário para o seu caso
     next(); // Chama o próximo middleware ou rota
   });
 };

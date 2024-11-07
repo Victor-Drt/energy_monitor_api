@@ -8,7 +8,7 @@ import moment from "moment-timezone";
 export const criarAmbiente = async (req: Request, res: Response) => {
   try {
     const { nome } = req.body;
-    const usuarioId = req.user.userId
+    const usuarioId = (req as any).user.userId;
     const ambiente = await Ambiente.create({ nome, usuarioId });
     res.status(201).json(ambiente);
   } catch (error) {
@@ -22,12 +22,13 @@ export const listarAmbientes = async (req: Request, res: Response) => {
   try {
 
     const { startDate, endDate } = req.query;
+    const usuarioId = (req as any).user.userId;
 
     const [formattedStartDate, formattedendDate] = formatDates(startDate as string, endDate as string);
 
     // Obtém os ambientes do usuário
     const ambientes = await Ambiente.findAll({
-      where: { usuarioId: req.user.userId },
+      where: { usuarioId: usuarioId },
     });
 
     // Mapeia os ambientes para adicionar a quantidade de dispositivos e a média de consumo do mês
