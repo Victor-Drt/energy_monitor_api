@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Medicao } from '../models/Medicao';
 import { QualidadeEnergia } from '../models/QualidadeEnergia';
 import { Op } from 'sequelize';
+import moment from "moment-timezone";
 
 class QualidadeEnergiaController {
 
@@ -102,15 +103,9 @@ class QualidadeEnergiaController {
 }
 
 function formatDates(startDateString: string, endDateString: string) {
-  // Cria o objeto Date para a data de início (meia-noite)
-  const formattedStartDate = new Date(startDateString);
-  formattedStartDate.setHours(0, 0, 0, 0); // Define para 00:00:00.000
+  const formattedStartDate = moment.tz(startDateString, "America/Manaus").startOf("day").format();
+  const formattedEndDate = moment.tz(endDateString, "America/Manaus").endOf("day").format();
 
-  // Cria o objeto Date para a data de fim (23:59:59.999 do dia anterior à meia-noite)
-  const formattedEndDate = new Date(endDateString);
-  formattedEndDate.setHours(23, 59, 59, 999); // Define para 23:59:59.999
-
-  // Retorna um array com as datas formatadas
   return [formattedStartDate, formattedEndDate];
 }
 
