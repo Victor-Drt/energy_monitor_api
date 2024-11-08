@@ -7,69 +7,104 @@ import moment from "moment-timezone";
 
 class MedicaoController {
 
-  public async obterTensaoPorDispositivo(req: Request, res: Response) {
+  public async obterTensaoPorHora(req: Request, res: Response) {
     try {
-      const { dia, usuarioId } = req.query;
-
+      const { dia } = req.query;
+      const userId = (req as any).user.userId; // Obtendo o userId do token
+  
       // Iniciar e finalizar o dia em formato ISO
-      const startOfDay = moment.tz(dia as string, 'America/Manaus').startOf('day').toISOString();
-      const endOfDay = moment.tz(dia as string, 'America/Manaus').endOf('day').toISOString();
-
-      // Buscar as medições para o usuário especificado
-      const medicoes = await Medicao.findAll({
-        attributes: ['timestamp', 'tensao', 'potenciaAtiva', 'dispositivoId'],  // Ajuste os campos conforme necessário
+      const startOfDay = moment.tz(dia as string, 'America/Manaus').utc().startOf('day').toISOString();
+      const endOfDay = moment.tz(dia as string, 'America/Manaus').utc().endOf('day').toISOString();
+  
+      // Buscar os ambientes do usuário
+      const ambientes = await Ambiente.findAll({
+        where: { usuarioId: userId },
+        attributes: ['id'],
+      });
+  
+      const ambienteIds = ambientes.map((ambiente) => ambiente.id);
+  
+      // Buscar os dispositivos dos ambientes do usuário
+      const dispositivos = await Dispositivo.findAll({
         where: {
-          timestamp: {
-            [Op.between]: [startOfDay, endOfDay],
-          },
-          usuarioId: usuarioId,  // Filtrando pelo ID do usuário
+          ambienteId: { [Op.in]: ambienteIds },
+        },
+        attributes: ['id', 'macAddress', 'descricao'],
+      });
+  
+      const dispositivosIds = dispositivos.map((dispositivo) => dispositivo.macAddress);
+  
+      // Buscar as medições para os dispositivos no intervalo de tempo
+      const medicoes = await Medicao.findAll({
+        attributes: [
+          [Sequelize.literal(`to_char(timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS')`), 'timestamp'],
+          'tensao',
+          'dispositivoId',
+        ],
+        where: {
+          dispositivoId: { [Op.in]: dispositivosIds },
+          timestamp: { [Op.between]: [startOfDay, endOfDay] },
         },
       });
-
-      // Inicializar o objeto de resultados
-      const resultados: Record<string, { nome: string, registros: { hora: string, potenciaTotalKw: number }[] }> = {};
-
-      // Agrupar as medições por dispositivo e por hora
-      medicoes.forEach(medicao => {
-        const dispositivoId = medicao.dispositivoId;
+  
+      // Inicializando o objeto de resultados
+      const resultados: Record<string, { nome: string; registros: Array<{ hora: string; tensaoMedia: number }> }> = {};
+  
+      // Objeto intermediário para cálculos
+      const calculos: Record<string, { totalTensao: number; count: number }> = {};
+  
+      // Agrupar as medições por dispositivo e hora
+      medicoes.forEach((medicao) => {
         const hora = moment(medicao.timestamp).startOf('hour').format('YYYY-MM-DD HH:00');
-        const potenciaAtiva = medicao.potenciaAtiva;
-
-        // Verifique se já existe um grupo para o dispositivo
-        if (!resultados[dispositivoId]) {
-          resultados[dispositivoId] = {
-            nome: `Device Test ${dispositivoId}`,  // Nome do dispositivo, ajustado conforme necessário
-            registros: [],
-          };
-        }
-
-        // Verificar se já existe um registro para a hora
-        const registroExistente = resultados[dispositivoId].registros.find(r => r.hora === hora);
-
-        if (registroExistente) {
-          // Se o registro já existe, apenas somar a potência
-          registroExistente.potenciaTotalKw += potenciaAtiva / 1000;  // Convertendo para kW
-        } else {
-          // Caso contrário, criar um novo registro
-          resultados[dispositivoId].registros.push({
-            hora,
-            potenciaTotalKw: potenciaAtiva / 1000,  // Convertendo para kW
-          });
+        const tensao = medicao.tensao;
+        const dispositivo = dispositivos.find((d) => d.macAddress === medicao.dispositivoId);
+  
+        if (dispositivo) {
+          const dispositivoNome = dispositivo.descricao || dispositivo.macAddress;
+  
+          if (!resultados[dispositivoNome]) {
+            resultados[dispositivoNome] = { nome: dispositivoNome, registros: [] };
+          }
+  
+          // Chave única para identificar dispositivo + hora
+          const chave = `${dispositivoNome}_${hora}`;
+  
+          // Inicializa o cálculo se não existir
+          if (!calculos[chave]) {
+            calculos[chave] = { totalTensao: 0, count: 0 };
+          }
+  
+          // Acumula a tensão e incrementa o contador
+          calculos[chave].totalTensao += tensao;
+          calculos[chave].count += 1;
         }
       });
-
-      // Converter o resultado para o formato esperado (array de dispositivos)
+  
+      // Processar os cálculos para cada dispositivo
+      Object.keys(calculos).forEach((chave) => {
+        const [dispositivoNome, hora] = chave.split('_');
+        const { totalTensao, count } = calculos[chave];
+  
+        const tensaoMedia = totalTensao / count;
+  
+        // Adiciona o registro na resposta final
+        resultados[dispositivoNome].registros.push({
+          hora,
+          tensaoMedia,
+        });
+      });
+  
+      // Transformar o objeto de resultados para a resposta final
       const resposta = Object.values(resultados);
-
-      // Enviar a resposta para o cliente
+  
+      // Retornar a resposta
       res.json(resposta);
-
     } catch (error) {
       console.error('Erro:', error);
-      res.status(500).json({ error: 'Erro ao obter a tensão ou potência por dispositivo.' });
+      res.status(500).json({ error: 'Erro ao obter a tensão por hora.' });
     }
   }
-
+  
   public async obterConsumoPorHora(req: Request, res: Response) {
     try {
       const { dia } = req.query;

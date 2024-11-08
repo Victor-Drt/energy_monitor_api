@@ -7,6 +7,7 @@ const router = express.Router();
 // Aplica o middleware de autenticação antes de acessar os métodos do controller
 router.get('/estatisticas', authenticateJWT, medicaoController.obterEstatisticas);
 router.get('/consumo-hora', authenticateJWT, medicaoController.obterConsumoPorHora);
+router.get('/tensao-hora', authenticateJWT, medicaoController.obterTensaoPorHora);
 router.get('/:macAddress', authenticateJWT, medicaoController.listarMedicoes);
 router.get('/ambiente/:ambienteId', authenticateJWT, medicaoController.listarMedicoesPorAmbiente);
 
