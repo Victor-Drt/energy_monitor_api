@@ -8,6 +8,8 @@ const router = express.Router();
 router.get('/estatisticas', authenticateJWT, medicaoController.obterEstatisticas);
 router.get('/consumo-hora', authenticateJWT, medicaoController.obterConsumoPorHora);
 router.get('/tensao-hora', authenticateJWT, medicaoController.obterTensaoPorHora);
+router.get('/ptreativa-hora', authenticateJWT, medicaoController.obterPotenciaReativaPorHora);
+router.get('/fatorpt-hora', authenticateJWT, medicaoController.obterFatorPotenciaPorHora);
 router.get('/:macAddress', authenticateJWT, medicaoController.listarMedicoes);
 router.get('/ambiente/:ambienteId', authenticateJWT, medicaoController.listarMedicoesPorAmbiente);
 

@@ -77,7 +77,6 @@ export const listarAmbientes = async (req: Request, res: Response) => {
 
     res.json(resultados);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ error: 'Erro ao listar ambientes' });
   }
 };

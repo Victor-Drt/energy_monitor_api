@@ -28,7 +28,7 @@ class MqttService {
 
                 const s = data.tensao * data.corrente;
                 const p = data.potenciaAtiva;
-                const potenciaReativa = Math.sqrt((s * s) - (p * p));
+                const potenciaReativa = data.tensao * data.corrente;
 
                 // Processamento da medição
                 const medicao = await Medicao.create({
@@ -40,8 +40,6 @@ class MqttService {
                     potenciaReativa,
                     consumoAcumulado: 0,
                 });
-
-                console.log('Medição armazenada com sucesso:', medicao);
             } catch (error) {
                 console.error('Erro ao processar a mensagem:', error);
             }

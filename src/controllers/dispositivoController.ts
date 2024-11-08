@@ -7,9 +7,7 @@ export const criarDispositivo = async (req: Request, res: Response) => {
     const { ambienteId, macAddress, descricao } = req.body;
     const dispositivo = await Dispositivo.create({ ambienteId, macAddress, descricao, status: true, dataAtivacao });
     res.status(201).json(dispositivo);
-  } catch (error) {
-    console.log(error);
-    
+  } catch (error) {    
     res.status(500).json({ error: 'Erro ao criar dispositivo' });
   }
 };
