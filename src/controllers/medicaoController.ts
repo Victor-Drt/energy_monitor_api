@@ -1,11 +1,56 @@
 import { Request, Response } from 'express';
 import { Medicao } from '../models/Medicao';
-import { Op, fn, col, literal } from 'sequelize';
+import { Op, fn, col, literal, Sequelize } from 'sequelize';
 import { Ambiente } from '../models/Ambiente';
 import { Dispositivo } from '../models/Dispositivo';
 import moment from "moment-timezone";
 
 class MedicaoController {
+
+  public async obterConsumoPorHora(req: Request, res: Response) {
+    try {
+      const { dia } = req.query;
+
+      const startOfDay = moment.tz(dia as string, 'America/Manaus').startOf('day').toISOString();
+      const endOfDay = moment.tz(dia as string, 'America/Manaus').endOf('day').toISOString();
+
+      // Busca todos os dados no intervalo desejado
+      const medicoes = await Medicao.findAll({
+        attributes: ['timestamp', 'potenciaAtiva'],  // Ajuste os campos que você precisa
+        where: {
+          timestamp: {
+            [Op.between]: [startOfDay, endOfDay]
+          }
+        }
+      });
+
+      // Inicializar resultados com um tipo explícito para permitir o índice de string
+      const resultados: Record<string, { hora: string, potenciaTotalWatts: number }> = {};
+
+      // Agrupar as medições por hora
+      medicoes.forEach(medicao => {
+        const hora = moment(medicao.timestamp).startOf('hour').format('YYYY-MM-DD HH:00');
+        const potenciaAtiva = medicao.potenciaAtiva;
+
+        if (!resultados[hora]) {
+          resultados[hora] = { hora, potenciaTotalWatts: 0 };
+        }
+
+        resultados[hora].potenciaTotalWatts += potenciaAtiva;
+      });
+
+      // Transformar os resultados para uma lista
+      const resposta = Object.values(resultados).map(item => ({
+        hora: item.hora,
+        potenciaTotalKw: item.potenciaTotalWatts / 1000,  // Convertendo para kW
+      }));
+
+      res.json(resposta);
+    } catch (error) {
+      console.error('Erro:', error);
+      res.status(500).json({ error: 'Erro ao obter o consumo por hora.' });
+    }
+  }
 
   // Listar medições em ordem da mais recente para a mais antiga em um determinado período
   public async listarMedicoes(req: Request, res: Response) {
