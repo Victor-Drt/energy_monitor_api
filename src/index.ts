@@ -10,8 +10,12 @@ import qualidadeEnergiaRoutes from './routes/qualidadeEnergiaRoutes';
 
 dotenv.config();
 
+const cors = require('cors');
 const app = express();
+
+// Usando express.json e cors separadamente
 app.use(express.json());
+app.use(cors()); // Agora o CORS está configurado corretamente
 
 // Conectar ao banco de dados
 sequelize.sync()

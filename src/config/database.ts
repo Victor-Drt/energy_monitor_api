@@ -6,24 +6,32 @@ import { Medicao } from '../models/Medicao';
 import { QualidadeEnergia } from '../models/QualidadeEnergia';
 
 import dotenv from 'dotenv';
+import pg from 'pg';
 
 dotenv.config();
 
 export const sequelize = new Sequelize({
   dialect: 'postgres',
-  host: process.env.DB_HOST,
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  dialectModule: pg,
+  host: process.env.POSTGRES_HOST,
+  username: process.env.POSTGRES_USER,
+  password: process.env.POSTGRES_PASSWORD,
+  database: process.env.POSTGRES_DATABASE,
   models: [Usuario, Ambiente, Dispositivo, Medicao, QualidadeEnergia],
   port: Number(process.env.DB_PORT),
   // timezone: '-04:00',
   logging: false,
+  dialectOptions: {
+    ssl: {
+      require: true,  // Habilita o SSL
+      rejectUnauthorized: false  // Isso é necessário em alguns ambientes de produção (ajustar conforme necessário)
+    }
+  },
 });
 
 (async () => {
   try {
-    await sequelize.sync({ force: false });
+    await sequelize.sync({ force: true });
     console.log('Conexão com o banco de dados foi bem-sucedida!');
   } catch (error) {
     console.error('Erro ao conectar ao banco de dados:', error);
