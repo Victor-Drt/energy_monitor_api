@@ -31,7 +31,8 @@ export const sequelize = new Sequelize({
 
 (async () => {
   try {
-    await sequelize.sync({ force: true });
+    await sequelize.sync({ force: false });
+    // await sequelize.sync({ force: true });
     console.log('Conexão com o banco de dados foi bem-sucedida!');
   } catch (error) {
     console.error('Erro ao conectar ao banco de dados:', error);
